@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayDrop — Share Your Playlists</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#07070b;--bg1:#0f0f18;--bg2:#161620;--bg3:#1d1d2b;
+  --sur:#222232;--bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);
+  --txt:#eeedf8;--txt2:#8887a0;--txt3:#44445a;
+  --ac:#e8fd5a;--ac2:#c8e000;--rad:12px;
+}
+body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:0.5;}
+.glow-orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(80px);}
+.glow1{width:500px;height:500px;background:rgba(232,253,90,0.06);top:-100px;right:-100px;}
+.glow2{width:400px;height:400px;background:rgba(130,80,255,0.07);bottom:100px;left:-100px;}
+
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:62px;background:rgba(7,7,11,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);}
+.logo{font-family:'Clash Display',sans-serif;font-weight:700;font-size:22px;color:var(--txt);display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-mark{width:32px;height:32px;background:var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+
+/* Live indicator */
+.live-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);}
+.live-dot .dot{width:7px;height:7px;border-radius:50%;background:#2ecc8a;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--rad);font-family:'Cabinet Grotesk',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s;text-decoration:none;}
+.btn-ghost{background:transparent;border:1px solid var(--bdr2);color:var(--txt2);}
+.btn-ghost:hover{color:var(--txt);border-color:rgba(255,255,255,0.25);}
+
+.hero{position:relative;z-index:1;padding:72px 40px 48px;max-width:900px;margin:0 auto;}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;background:rgba(232,253,90,0.1);border:1px solid rgba(232,253,90,0.25);border-radius:100px;padding:5px 14px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ac);margin-bottom:20px;}
+.hero h1{font-family:'Clash Display',sans-serif;font-size:clamp(40px,6vw,72px);font-weight:700;line-height:1.05;letter-spacing:-0.03em;margin-bottom:18px;}
+.hero h1 em{font-style:normal;color:var(--ac);}
+.hero p{font-size:18px;color:var(--txt2);font-weight:300;max-width:520px;line-height:1.7;}
+
+.stats-bar{display:flex;gap:24px;padding:16px 40px;border-bottom:1px solid var(--bdr);position:relative;z-index:1;overflow-x:auto;}
+.stat{display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.stat-num{font-family:'Clash Display',sans-serif;font-size:18px;font-weight:700;color:var(--ac);}
+.stat-label{font-size:13px;color:var(--txt2);}
+
+.main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 40px 80px;display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start;}
+
+.panel{background:var(--bg2);border:1px solid var(--bdr2);border-radius:20px;overflow:hidden;position:sticky;top:80px;}
+.panel-header{padding:24px 24px 20px;border-bottom:1px solid var(--bdr);margin-bottom:24px;}
+.panel-header h2{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:600;margin-bottom:4px;}
+.panel-header p{font-size:13px;color:var(--txt2);}
+.panel-body{padding:0 24px 24px;}
+
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--txt2);margin-bottom:8px;}
+.field input,.field textarea,.field select{width:100%;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--rad);padding:11px 14px;font-family:'Cabinet Grotesk',sans-serif;font-size:14px;color:var(--txt);outline:none;transition:border-color 0.2s,background 0.2s;resize:none;appearance:none;}
+.field input::placeholder,.field textarea::placeholder{color:var(--txt3);}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--ac);background:rgba(232,253,90,0.03);}
+.field select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238887a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+
+.genre-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.genre-chip{padding:7px 14px;border-radius:100px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.genre-chip:hover{color:var(--txt);background:var(--sur);}
+.genre-chip.active{background:var(--ac);border-color:var(--ac);color:#07070b;font-weight:700;}
+.chip-emoji{font-size:14px;}
+
+.url-detect{display:none;align-items:center;gap:8px;background:rgba(232,253,90,0.08);border:1px solid rgba(232,253,90,0.2);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;color:var(--ac);font-weight:500;}
+.url-detect.show{display:flex;}
+
+.submit-btn{width:100%;padding:14px;background:var(--ac);color:#07070b;font-family:'Clash Display',sans-serif;font-size:16px;font-weight:700;border:none;border-radius:var(--rad);cursor:pointer;transition:all 0.2s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.submit-btn:hover{background:var(--ac2);transform:translateY(-1px);box-shadow:0 8px 28px rgba(232,253,90,0.2);}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+.feed-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.feed-controls h2{font-family:'Clash Display',sans-serif;font-size:26px;font-weight:600;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;}
+.filter-chip{padding:6px 14px;border-radius:100px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);background:var(--bg2);color:var(--txt2);transition:all 0.15s;}
+.filter-chip:hover{color:var(--txt);}
+.filter-chip.active{background:var(--ac);border-color:var(--ac);color:#07070b;font-weight:700;}
+
+.playlist-grid{display:flex;flex-direction:column;gap:14px;}
+
+.pl-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:18px 20px;transition:border-color 0.2s,background 0.2s;display:flex;gap:16px;align-items:center;cursor:pointer;animation:fadeUp 0.35s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.pl-card:hover{border-color:var(--bdr2);background:var(--bg3);}
+
+.pl-art{width:64px;height:64px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;overflow:hidden;}
+.pl-art::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.15);}
+
+.pl-body{flex:1;min-width:0;}
+.pl-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:5px;}
+.pl-name{font-family:'Clash Display',sans-serif;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pl-tags{display:flex;gap:6px;flex-shrink:0;}
+.tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;letter-spacing:0.04em;}
+.tag-genre{background:rgba(232,253,90,0.12);color:var(--ac);}
+.tag-platform{display:flex;align-items:center;gap:4px;}
+.tag-spotify{background:rgba(30,215,96,0.12);color:#1ed760;}
+.tag-apple{background:rgba(255,50,80,0.12);color:#ff5555;}
+.tag-youtube{background:rgba(255,80,0,0.12);color:#ff6b35;}
+.tag-soundcloud{background:rgba(255,85,0,0.12);color:#ff5500;}
+.tag-tidal{background:rgba(80,160,255,0.12);color:#50a0ff;}
+.tag-other{background:rgba(150,150,200,0.12);color:#9696c8;}
+.pl-desc{font-size:13px;color:var(--txt2);margin-bottom:8px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pl-meta{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--txt3);}
+.pl-meta span{display:flex;align-items:center;gap:4px;}
+.pl-actions{display:flex;gap:8px;flex-direction:column;align-items:flex-end;flex-shrink:0;}
+
+.copy-btn{padding:7px 14px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.copy-btn:hover{color:var(--txt);border-color:rgba(255,255,255,0.25);}
+.copy-btn.copied{background:rgba(232,253,90,0.1);border-color:var(--ac);color:var(--ac);}
+.open-btn{padding:7px 14px;background:var(--ac);border:none;border-radius:8px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:700;color:#07070b;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.open-btn:hover{background:var(--ac2);}
+
+.empty{text-align:center;padding:60px 20px;color:var(--txt3);}
+.empty .empty-icon{font-size:48px;margin-bottom:16px;}
+.empty h3{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:600;color:var(--txt2);margin-bottom:8px;}
+.empty p{font-size:14px;line-height:1.6;}
+
+/* Loading spinner */
+.loading{text-align:center;padding:60px 20px;color:var(--txt2);}
+.spinner{width:32px;height:32px;border:2px solid var(--bdr2);border-top-color:var(--ac);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ac);color:#07070b;padding:11px 20px;border-radius:100px;font-size:13px;font-weight:700;opacity:0;transition:all 0.3s;z-index:1000;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--bdr2);border-radius:20px;padding:32px;max-width:440px;width:100%;animation:fadeUp 0.25s ease;}
+.modal h3{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px;}
+.modal .modal-sub{font-size:14px;color:var(--txt2);margin-bottom:24px;}
+.modal-art{width:80px;height:80px;border-radius:14px;font-size:36px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;}
+.modal-link-box{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--rad);padding:12px 14px;margin-bottom:20px;}
+.modal-link-box span{flex:1;font-size:13px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.modal-close{width:100%;padding:12px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--rad);font-family:'Cabinet Grotesk',sans-serif;font-size:14px;font-weight:500;color:var(--txt2);cursor:pointer;transition:all 0.2s;margin-top:8px;}
+.modal-close:hover{color:var(--txt);}
+
+footer{position:relative;z-index:1;text-align:center;padding:28px 20px;border-top:1px solid var(--bdr);margin-top:20px;}
+
+@media(max-width:768px){
+  nav{padding:0 20px;}
+  .hero{padding:48px 20px 32px;}
+  .main{grid-template-columns:1fr;padding:0 20px 60px;}
+  .panel{position:static;}
+  .stats-bar{padding:12px 20px;}
+  .pl-card{flex-wrap:wrap;}
+  .pl-actions{flex-direction:row;}
+}
+</style>
+</head>
+<body>
+
+<div class="glow-orb glow1"></div>
+<div class="glow-orb glow2"></div>
+
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-mark">🎵</div>
+    PlayDrop
+  </a>
+  <div class="nav-right">
+    <div class="live-dot"><span class="dot"></span><span id="conn-label">Connecting...</span></div>
+    <button class="btn btn-ghost" onclick="document.querySelector('.panel').scrollIntoView({behavior:'smooth'})">+ Submit</button>
+  </div>
+</nav>
+
+<div class="stats-bar">
+  <div class="stat"><span class="stat-num" id="s-total">—</span><span class="stat-label">playlists</span></div>
+  <div class="stat"><span class="stat-num" id="s-genres">—</span><span class="stat-label">genres</span></div>
+  <div class="stat"><span class="stat-num" id="s-platforms">—</span><span class="stat-label">platforms</span></div>
+</div>
+
+<div class="hero">
+  <div class="eyebrow">🎧 Live & shared with everyone</div>
+  <h1>Drop your playlist.<br><em>Let everyone vibe.</em></h1>
+  <p>Paste any playlist link from Spotify, Apple Music, YouTube or anywhere — tag it, describe it, and let others discover it in real time.</p>
+</div>
+
+<div class="main">
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Share a playlist</h2>
+      <p>Paste a link and pick a genre</p>
+    </div>
+    <div class="panel-body">
+      <div class="field">
+        <label>Playlist name</label>
+        <input type="text" id="pl-name" placeholder="e.g. Late Night Vibez" maxlength="60">
+      </div>
+      <div class="field">
+        <label>Playlist link</label>
+        <input type="url" id="pl-url" placeholder="https://open.spotify.com/playlist/..." oninput="detectPlatform(this.value)">
+        <div class="url-detect" id="url-detect">
+          <span id="plat-icon"></span>
+          <span id="plat-label"></span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Genre / Vibe</label>
+        <div class="genre-grid" id="genre-grid"></div>
+      </div>
+      <div class="field">
+        <label>Short description <span style="font-weight:400;text-transform:none;color:var(--txt3)">(optional)</span></label>
+        <textarea id="pl-desc" rows="2" placeholder="What's the mood? Who is it for?" maxlength="120"></textarea>
+      </div>
+      <div class="field">
+        <label>Your name <span style="font-weight:400;text-transform:none;color:var(--txt3)">(optional)</span></label>
+        <input type="text" id="pl-author" placeholder="e.g. DJ Kofi" maxlength="30">
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="submitPlaylist()">
+        <span>Drop it 🎯</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="feed-area">
+    <div class="feed-controls">
+      <h2>Playlists</h2>
+      <div class="filter-row" id="filter-row">
+        <button class="filter-chip active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      </div>
+    </div>
+    <div class="playlist-grid" id="playlist-grid">
+      <div class="loading"><div class="spinner"></div><p>Loading playlists...</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-art" id="m-art"></div>
+    <h3 id="m-name"></h3>
+    <div class="modal-sub" id="m-sub"></div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;" id="m-tags"></div>
+    <p style="font-size:14px;color:var(--txt2);margin-bottom:20px;line-height:1.6;" id="m-desc"></p>
+    <div class="modal-link-box">
+      <span id="m-link"></span>
+      <button class="copy-btn" id="m-copy-btn" onclick="copyModalLink()">Copy</button>
+    </div>
+    <a id="m-open" href="#" target="_blank" rel="noopener" class="open-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:13px;font-size:15px;font-weight:700;border-radius:var(--rad);text-decoration:none;">Open playlist ↗</a>
+    <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<footer>
+  <p style="font-family:'Cabinet Grotesk',sans-serif;font-size:13px;color:var(--txt3);">
+    © <span id="footer-year"></span> <span style="color:var(--ac);font-weight:700;">f5star Dev</span> — All rights reserved
+  </p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAy26H7VRJCuJpH0ReLuOH0TY9MUyYEp0Y",
+  authDomain: "playdrop-fec84.firebaseapp.com",
+  projectId: "playdrop-fec84",
+  storageBucket: "playdrop-fec84.firebasestorage.app",
+  messagingSenderId: "822372611805",
+  appId: "1:822372611805:web:78ac7120c66b9bf0fd4d34",
+  measurementId: "G-TEYDV29LEP"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Expose to global scope for non-module functions
+window._db = db;
+window._collection = collection;
+window._addDoc = addDoc;
+window._serverTimestamp = serverTimestamp;
+
+// Real-time listener
+const q = query(collection(db, "playlists"), orderBy("ts", "desc"));
+onSnapshot(q, (snapshot) => {
+  document.getElementById('conn-label').textContent = 'Live';
+  const docs = [];
+  snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+  window._playlists = docs;
+  renderFeed();
+  updateStats();
+}, (err) => {
+  console.error(err);
+  document.getElementById('conn-label').textContent = 'Offline';
+  document.getElementById('conn-label').style.color = '#ff5555';
+  document.querySelector('.live-dot .dot').style.background = '#ff5555';
+  document.getElementById('playlist-grid').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><h3>Connection error</h3><p>Could not reach the database.<br>Make sure Firestore is enabled in your Firebase project.</p></div>`;
+});
+
+// Submit
+window.submitPlaylist = async function() {
+  const name = document.getElementById('pl-name').value.trim();
+  const url = document.getElementById('pl-url').value.trim();
+  const desc = document.getElementById('pl-desc').value.trim();
+  const author = document.getElementById('pl-author').value.trim();
+
+  if (!name) { showToast('Give your playlist a name'); return; }
+  if (!url || !url.startsWith('http')) { showToast('Paste a valid URL'); return; }
+  if (!window._selectedGenre) { showToast('Pick a genre first'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>Dropping...</span>';
+
+  try {
+    await _addDoc(_collection(_db, "playlists"), {
+      name, url, desc,
+      author: author || 'Anonymous',
+      genre: window._selectedGenre,
+      platform: getPlatformFromUrl(url),
+      ts: _serverTimestamp(),
+    });
+
+    document.getElementById('pl-name').value = '';
+    document.getElementById('pl-url').value = '';
+    document.getElementById('pl-desc').value = '';
+    document.getElementById('pl-author').value = '';
+    document.getElementById('url-detect').classList.remove('show');
+    document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+    window._selectedGenre = null;
+    showToast('🎯 Playlist dropped!');
+    document.querySelector('.feed-area').scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    console.error(e);
+    showToast('Error saving — check Firestore rules');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>Drop it 🎯</span>';
+  }
+};
+</script>
+
+<script>
+document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+const GENRES = [
+  {id:'afrobeats',label:'Afrobeats',emoji:'🌍'},
+  {id:'afropop',label:'Afropop',emoji:'✨'},
+  {id:'rap',label:'Rap / Hip-Hop',emoji:'🎤'},
+  {id:'rnb',label:'R&B / Soul',emoji:'💜'},
+  {id:'amapiano',label:'Amapiano',emoji:'🪗'},
+  {id:'drill',label:'Drill',emoji:'🔩'},
+  {id:'dancehall',label:'Dancehall',emoji:'🌴'},
+  {id:'highlife',label:'Highlife',emoji:'🥁'},
+  {id:'gospel',label:'Gospel',emoji:'🙏'},
+  {id:'pop',label:'Pop',emoji:'⭐'},
+  {id:'electronic',label:'Electronic',emoji:'🎛️'},
+  {id:'jazz',label:'Jazz / Neo-Soul',emoji:'🎷'},
+  {id:'house',label:'House / Techno',emoji:'🔊'},
+  {id:'lofi',label:'Lo-fi / Chill',emoji:'☁️'},
+  {id:'workout',label:'Workout',emoji:'💪'},
+  {id:'throwback',label:'Throwback',emoji:'📼'},
+  {id:'party',label:'Party',emoji:'🥂'},
+  {id:'other',label:'Other',emoji:'🎵'},
+];
+
+window._playlists = [];
+window._selectedGenre = null;
+let activeFilter = 'all';
+let currentModalLink = '';
+
+// Build genre chips
+const gg = document.getElementById('genre-grid');
+GENRES.forEach(g => {
+  const c = document.createElement('button');
+  c.className = 'genre-chip';
+  c.dataset.id = g.id;
+  c.innerHTML = `<span class="chip-emoji">${g.emoji}</span>${g.label}`;
+  c.onclick = () => {
+    document.querySelectorAll('.genre-chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    window._selectedGenre = g.id;
+  };
+  gg.appendChild(c);
+});
+
+function detectPlatform(url) {
+  const d = document.getElementById('url-detect');
+  const icon = document.getElementById('plat-icon');
+  const lbl = document.getElementById('plat-label');
+  if (!url) { d.classList.remove('show'); return; }
+  let p = null;
+  if (url.includes('spotify.com')) p = { icon: '🎵', label: 'Detected: Spotify' };
+  else if (url.includes('apple.com') || url.includes('music.apple')) p = { icon: '🎵', label: 'Detected: Apple Music' };
+  else if (url.includes('youtube.com') || url.includes('youtu.be')) p = { icon: '▶️', label: 'Detected: YouTube Music' };
+  else if (url.includes('soundcloud.com')) p = { icon: '🔶', label: 'Detected: SoundCloud' };
+  else if (url.includes('tidal.com')) p = { icon: '🌊', label: 'Detected: Tidal' };
+  else if (url.includes('deezer.com')) p = { icon: '🎶', label: 'Detected: Deezer' };
+  else if (url.startsWith('http')) p = { icon: '🔗', label: 'Custom link' };
+  if (p) { icon.textContent = p.icon; lbl.textContent = p.label; d.classList.add('show'); }
+  else d.classList.remove('show');
+}
+
+function getPlatformFromUrl(url) {
+  if (!url) return 'other';
+  if (url.includes('spotify.com')) return 'spotify';
+  if (url.includes('apple.com') || url.includes('music.apple')) return 'apple';
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+  if (url.includes('soundcloud.com')) return 'soundcloud';
+  if (url.includes('tidal.com')) return 'tidal';
+  return 'other';
+}
+
+function getPlatformTag(platform) {
+  const map = {
+    spotify: { cls: 'tag-spotify', label: 'Spotify', emoji: '🎵' },
+    apple: { cls: 'tag-apple', label: 'Apple Music', emoji: '🎵' },
+    youtube: { cls: 'tag-youtube', label: 'YouTube', emoji: '▶️' },
+    soundcloud: { cls: 'tag-soundcloud', label: 'SoundCloud', emoji: '🔶' },
+    tidal: { cls: 'tag-tidal', label: 'Tidal', emoji: '🌊' },
+    other: { cls: 'tag-other', label: 'Link', emoji: '🔗' },
+  };
+  return map[platform] || map.other;
+}
+
+function getGenreInfo(id) {
+  return GENRES.find(g => g.id === id) || { id: 'other', label: 'Other', emoji: '🎵' };
+}
+
+function getArtGradient(genre) {
+  const map = {
+    afrobeats:'linear-gradient(135deg,#f97316,#eab308)',
+    afropop:'linear-gradient(135deg,#ec4899,#f97316)',
+    rap:'linear-gradient(135deg,#6366f1,#a855f7)',
+    rnb:'linear-gradient(135deg,#8b5cf6,#ec4899)',
+    amapiano:'linear-gradient(135deg,#14b8a6,#3b82f6)',
+    drill:'linear-gradient(135deg,#374151,#6b7280)',
+    dancehall:'linear-gradient(135deg,#10b981,#eab308)',
+    highlife:'linear-gradient(135deg,#f59e0b,#ef4444)',
+    gospel:'linear-gradient(135deg,#3b82f6,#8b5cf6)',
+    pop:'linear-gradient(135deg,#ec4899,#3b82f6)',
+    electronic:'linear-gradient(135deg,#06b6d4,#3b82f6)',
+    jazz:'linear-gradient(135deg,#d97706,#92400e)',
+    house:'linear-gradient(135deg,#0ea5e9,#6366f1)',
+    lofi:'linear-gradient(135deg,#6b7280,#4b5563)',
+    workout:'linear-gradient(135deg,#ef4444,#f97316)',
+    throwback:'linear-gradient(135deg,#78716c,#a8a29e)',
+    party:'linear-gradient(135deg,#e8fd5a,#f97316)',
+    other:'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  };
+  return map[genre] || map.other;
+}
+
+function timeAgo(ts) {
+  if (!ts) return 'just now';
+  const d = Date.now() - (ts.toMillis ? ts.toMillis() : ts);
+  if (d < 60000) return 'just now';
+  if (d < 3600000) return Math.floor(d / 60000) + 'm ago';
+  if (d < 86400000) return Math.floor(d / 3600000) + 'h ago';
+  return Math.floor(d / 86400000) + 'd ago';
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderFeed();
+}
+
+function renderFeed() {
+  const playlists = window._playlists || [];
+  const filtered = activeFilter === 'all' ? playlists : playlists.filter(p => p.genre === activeFilter);
+  const grid = document.getElementById('playlist-grid');
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🎶</div><h3>${activeFilter === 'all' ? 'Nothing dropped yet' : 'No playlists in this genre'}</h3><p>${activeFilter === 'all' ? 'Be the first to share a playlist.' : 'Drop a playlist in this genre!'}</p></div>`;
+    updateFilterChips();
+    return;
+  }
+
+  grid.innerHTML = '';
+  filtered.forEach((pl, i) => {
+    const g = getGenreInfo(pl.genre);
+    const pt = getPlatformTag(pl.platform);
+    const grad = getArtGradient(pl.genre);
+    const card = document.createElement('div');
+    card.className = 'pl-card';
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      <div class="pl-art" style="background:${grad}">${g.emoji}</div>
+      <div class="pl-body">
+        <div class="pl-top">
+          <div class="pl-name">${esc(pl.name)}</div>
+          <div class="pl-tags">
+            <span class="tag tag-genre">${g.emoji} ${g.label}</span>
+            <span class="tag tag-platform ${pt.cls}">${pt.emoji} ${pt.label}</span>
+          </div>
+        </div>
+        ${pl.desc ? `<div class="pl-desc">${esc(pl.desc)}</div>` : ''}
+        <div class="pl-meta">
+          <span>👤 ${esc(pl.author || 'Anonymous')}</span>
+          <span>🕐 ${timeAgo(pl.ts)}</span>
+        </div>
+      </div>
+      <div class="pl-actions">
+        <button class="open-btn" onclick="event.stopPropagation();window.open('${esc(pl.url)}','_blank')">Open ↗</button>
+        <button class="copy-btn" data-url="${esc(pl.url)}" onclick="event.stopPropagation();copyLinkBtn(this)">Copy link</button>
+      </div>
+    `;
+    card.addEventListener('click', () => openModal(pl));
+    grid.appendChild(card);
+  });
+
+  updateFilterChips();
+}
+
+function updateFilterChips() {
+  const playlists = window._playlists || [];
+  const row = document.getElementById('filter-row');
+  const usedGenres = [...new Set(playlists.map(p => p.genre))];
+  row.querySelectorAll('[data-filter]:not([data-filter="all"])').forEach(e => e.remove());
+  usedGenres.forEach(gid => {
+    const g = getGenreInfo(gid);
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (activeFilter === gid ? ' active' : '');
+    btn.dataset.filter = gid;
+    btn.textContent = g.emoji + ' ' + g.label;
+    btn.onclick = () => setFilter(gid, btn);
+    row.appendChild(btn);
+  });
+  if (activeFilter === 'all') row.querySelector('[data-filter="all"]').classList.add('active');
+}
+
+function updateStats() {
+  const playlists = window._playlists || [];
+  document.getElementById('s-total').textContent = playlists.length;
+  document.getElementById('s-genres').textContent = new Set(playlists.map(p => p.genre)).size;
+  document.getElementById('s-platforms').textContent = new Set(playlists.map(p => p.platform)).size;
+}
+
+function copyLinkBtn(btn) {
+  navigator.clipboard.writeText(btn.dataset.url).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy link'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function openModal(pl) {
+  const g = getGenreInfo(pl.genre);
+  const pt = getPlatformTag(pl.platform);
+  const grad = getArtGradient(pl.genre);
+  document.getElementById('m-art').style.background = grad;
+  document.getElementById('m-art').textContent = g.emoji;
+  document.getElementById('m-name').textContent = pl.name;
+  document.getElementById('m-sub').textContent = 'By ' + (pl.author || 'Anonymous') + ' · ' + timeAgo(pl.ts);
+  document.getElementById('m-tags').innerHTML = `<span class="tag tag-genre">${g.emoji} ${g.label}</span><span class="tag tag-platform ${pt.cls}">${pt.emoji} ${pt.label}</span>`;
+  document.getElementById('m-desc').textContent = pl.desc || 'No description provided.';
+  document.getElementById('m-link').textContent = pl.url;
+  document.getElementById('m-open').href = pl.url;
+  currentModalLink = pl.url;
+  document.getElementById('m-copy-btn').textContent = 'Copy';
+  document.getElementById('m-copy-btn').classList.remove('copied');
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('open');
+}
+
+function copyModalLink() {
+  navigator.clipboard.writeText(currentModalLink).then(() => {
+    const btn = document.getElementById('m-copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
